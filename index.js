@@ -2,6 +2,7 @@ const ytdl = require('ytdl-core');
 const search = require("youtube-search")
 const fs = require('node:fs');
 const path = require('node:path');
+const { EmbedBuilder } = require('discord.js');
 require("dotenv").config(); //to start process from .env file
 const { joinVoiceChannel } = require('@discordjs/voice');
 const { createAudioPlayer, NoSubscriberBehavior, createAudioResource, StreamType, AudioPlayerStatus } = require('@discordjs/voice');
@@ -286,8 +287,28 @@ client.on(Events.MessageCreate, (message) => {
 
 	if (message.content.startsWith('!q')) {
 		const query = message.content.slice(3);
-		addToQueue(query)
-		message.channel.send(`Added to queue`);
+		if(query == '') { 
+			// Preview queue
+			let desc = ''
+			client.queue.forEach((song, index) => {
+				if(index > 24) {
+					return
+				}
+				desc += `${index + 1}. ${song}\n`
+			});
+			const queueEmbed = new EmbedBuilder()
+			.setColor(0x0099FF)
+			.setTitle('Queue')
+			.setDescription(desc)
+
+
+			message.channel.send({ embeds: [queueEmbed] });
+
+		}else { 
+			// Add to queue
+			addToQueue(query)
+			message.channel.send(`Added to queue`);
+		}
 	}
 
 	if (message.content.startsWith('!play') || message.content.startsWith('!p')) {
