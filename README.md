@@ -9,6 +9,7 @@ Discord Music Player
 - [x] Skip current song
 - [x] Queue song
 - [x] Skip song
+- [ ] Send message when new song starts playing with song info
 - [ ] Preview queue with Message Embed
 - [ ] Shuffle queue
 - [ ] Jump to spot in queue
