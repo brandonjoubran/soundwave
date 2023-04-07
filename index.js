@@ -6,13 +6,15 @@ const { EmbedBuilder } = require('discord.js');
 require("dotenv").config(); //to start process from .env file
 const { joinVoiceChannel } = require('@discordjs/voice');
 const { createAudioPlayer, NoSubscriberBehavior, createAudioResource, StreamType, AudioPlayerStatus } = require('@discordjs/voice');
+const fetch = require('node-fetch');
 
 
 const { Client, Events, Collection, GatewayIntentBits } = require('discord.js')
 
 const { Player } = require('discord-player')
 const { Routes } = require('discord-api-types/v9')
-const { REST } = require('@discordjs/rest')
+const { REST } = require('@discordjs/rest');
+const { connect } = require('node:http2');
 
 // Create a new client instance
 const client = new Client({ intents: [
@@ -66,6 +68,15 @@ client.once(Events.ClientReady, c => {
 	console.log(`Ready! Logged in as ${c.user.tag}`);
 });
 
+const shuffleQueue = array => {
+	for (let i = array.length - 1; i > 0; i--) {
+	  const j = Math.floor(Math.random() * (i + 1));
+	  const temp = array[i];
+	  array[i] = array[j];
+	  array[j] = temp;
+	}
+  }
+
 function getNewSpotifyAccessToken() {
 	const authString = Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64');
 
@@ -81,8 +92,10 @@ function getNewSpotifyAccessToken() {
 	.then(response => response.json())
 	.then(data => {
 		const accessToken = data.access_token;
-		process.env.SPOTIFY_ACCESS_TOKEN = accessToken
-		return true
+		console.log(accessToken)
+		console.log(process.env.SPOTIFY_ACCESS_TOKEN)
+		process.env.SPOTIFY_ACCESS_TOKEN = `${accessToken}`
+		console.log(process.env.SPOTIFY_ACCESS_TOKEN)
 	// Use the new access token to make requests to the Spotify API
 	})
 	.catch(error => {
@@ -113,7 +126,8 @@ function getSpotifyTracksRetry(playlistId) {
 	console.log("1")
 	return getSpotifyTracks(playlistId)
 	.then(data => {
-		if (data.error.status == 401) {
+		console.log(data)
+		if (data.error && data.error.status == 401) {
 			console.log("5")
 			return getNewSpotifyAccessToken()
 			.then(status => {
@@ -131,10 +145,11 @@ function addToQueue(item) {
 
 function getYoutubeResource(url) {
 	const stream = ytdl(url, {
-		filter: "audioonly",
 		quality: 'highestaudio',
       	highWaterMark: 1<<25,
 	})
+
+	console.log(stream)
 
 	const resource = createAudioResource(stream, {
 		inputType: StreamType.Arbitrary,
@@ -178,10 +193,15 @@ function playSong(resource, message) {
 	});
 	console.log("joined voice channel")
 	console.log("is song currently played: " + player.state.status != 'playing')
-
+	console.log(resource)
 	// Play song
-	player.play(resource);
-	connection.subscribe(player);
+	try{
+		player.play(resource);
+		connection.subscribe(player);
+	} catch (error) {
+		console.log('yup')
+		console.error(error);
+	  }
 }
 
 function handleRequest(query, message) {
@@ -267,17 +287,28 @@ function handleRequest(query, message) {
 
 }
 
-/*curl -X POST "https://accounts.spotify.com/api/token" \
-     -H "Content-Type: application/x-www-form-urlencoded" \
-     -d "grant_type=client_credentials&client_id=754d782c52814d73b97966fd328e803f&client_secret=e89722e302f54782b59669b2ae7f6309"
-*/
-
 client.on(Events.MessageCreate, (message) => {
 
 	if (message.content.startsWith('!skip')) {
 		// Stopping player makes it idle which triggers next song
 		console.log("Trying to stop...")
 		client.player.stop()
+	}
+
+	if (message.content.startsWith('!shuffle')) {
+		// Shuffling queue
+
+		if(client.queue.length == 0) {
+			// Queue empty, tell user nothing shuffled
+			return message.channel.send("Can't shuffle, the queue is empty!")
+		}
+
+		console.log("before shuffle: " + client.queue)
+		shuffleQueue(client.queue)
+		console.log("after shuffle: " + client.queue)
+		return message.channel.send("Queue shuffled!");
+
+		
 	}
 
 	if (message.content.startsWith('!pause')) {
