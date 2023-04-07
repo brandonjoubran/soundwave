@@ -15,3 +15,8 @@ Discord Music Player
 - [ ] Jump to spot in queue
 - [ ] Set default join volume
 - [x] Help command to list bot commands
+
+# Tech Used
+- Node
+- Discord.js
+- ytdl-core
