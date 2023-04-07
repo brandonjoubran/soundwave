@@ -260,14 +260,35 @@ function handleRequest(query, message) {
 
 client.on(Events.MessageCreate, (message) => {
 
-	console.log(message)
 	if (!message || !message.content || message.content == '') {
-		console.log('message empty')
 		return
 	}
 
 	if(!message.content.startsWith('!')) {
 		return
+	}
+
+	if (message.content.startsWith('!help')) {
+		// List of commands
+		// Preview queue
+		let desc = ''
+		desc += '!p / !play <YouTube link / Spotify song link / Spotify playlist link / name of song>\n'
+		desc += '!q <YouTube link / Spotify song link / Spotify playlist link / name of song>\n'
+		desc += '!pause\n'
+		desc += '!unpause\n'
+		desc += '!skip\n'
+		desc += '!shuffle\n'
+		const helpEmbed = new EmbedBuilder()
+		.setColor(0x0099FF)
+		.setTitle('List of bot commands')
+		.addFields(
+			{ name: 'Play audio', value: '\n**Command: **`!p <YouTube link / Spotify song link / Spotify playlist link / name of song>.`\n **Example**: !p https://www.youtube.com/watch?v=JuYeHPFR3f0\n **Example**: !p Pokemon theme song\n **Example**: !p https://open.spotify.com/playlist/1unCkH5i66vPZUI2ZA8R8H?si=5f29bd6644524455' },
+			{ name: 'Add to queue', value: '**Command: **`!q <YouTube link / Spotify song link / Spotify playlist link / name of song>.`\n **Example**: !q https://www.youtube.com/watch?v=JuYeHPFR3f0\n **Example**: !q Pokemon theme song\n **Example**: !q https://open.spotify.com/playlist/1unCkH5i66vPZUI2ZA8R8H?si=5f29bd6644524455' },
+			{ name: 'Pause audio', value: '**Command: **`!pause`' },
+			{ name: 'Unpause audio', value: '**Command: **`!unpause`' },
+			{ name: 'Shuffle queue', value: '**Command: **`!shuffle`' },
+		)
+		return message.channel.send({ embeds: [helpEmbed] });
 	}
 
 	if (message.content.startsWith('!skip')) {
@@ -316,7 +337,7 @@ client.on(Events.MessageCreate, (message) => {
 		}
 	}
 
-	if (message.content.startsWith('!play') || message.content.startsWith('!p')) {
+	if (message.content.startsWith('!p')) {
 
 		// Slicing song from command
 		const query = message.content.slice(6);
