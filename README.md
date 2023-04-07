@@ -14,3 +14,4 @@ Discord Music Player
 - [x] Shuffle queue
 - [ ] Jump to spot in queue
 - [ ] Set default join volume
+- [x] Help command to list bot commands
