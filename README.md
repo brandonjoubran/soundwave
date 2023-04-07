@@ -8,7 +8,7 @@ Discord Music Player
 - [x] Able to play songs from a Spotify playlist
 - [x] Skip current song
 - [x] Queue song
-- [x] Skip song
+- [ ] Pause/unpause song
 - [x] Send message when new song starts playing with song info
 - [ ] Preview queue with Message Embed
 - [x] Shuffle queue
