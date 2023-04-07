@@ -60,6 +60,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 // Creating the player
 client.player = createAudioPlayer();
 
+// Creating song queue
 client.queue = []
 
 // When the client is ready, run this code (only once)
@@ -68,6 +69,24 @@ client.once(Events.ClientReady, c => {
 	console.log(`Ready! Logged in as ${c.user.tag}`);
 });
 
+// Make queue embeded message
+const queueEmbed = () => {
+	// Preview queue
+	let desc = ''
+	client.queue.forEach((song, index) => {
+		if(index > 24) {
+			return
+		}
+		desc += `${index + 1}. ${song}\n`
+	});
+	const queueEmbed = new EmbedBuilder()
+	.setColor(0x0099FF)
+	.setTitle('Queue')
+	.setDescription(desc)
+	return queueEmbed
+}
+
+// Shuffle the queue
 const shuffleQueue = array => {
 	for (let i = array.length - 1; i > 0; i--) {
 	  const j = Math.floor(Math.random() * (i + 1));
@@ -77,10 +96,10 @@ const shuffleQueue = array => {
 	}
   }
 
+// Make a request to the Spotify API to get a new access token
 function getNewSpotifyAccessToken() {
 	const authString = Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64');
 
-	// Make a request to the Spotify API to get a new access token
 	return fetch('https://accounts.spotify.com/api/token', {
 		method: 'POST',
 		headers: {
@@ -104,34 +123,30 @@ function getNewSpotifyAccessToken() {
 
 }
 
+// Getting tracks from Spotify playlist using their API
 function getSpotifyTracks(playlistId) {
 	// Make a request to the Spotify API
-	console.log("2")
 	return fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
 		headers: {
 		'Authorization': `Bearer ${process.env.SPOTIFY_ACCESS_TOKEN}`
 		}
 	})
 	.then(response => {
-		console.log("3")
 		return response.json()}
 		)
 	.then(data => {
-		console.log("4")
 		return data
 	})
 }
 
+// Retry method for getting tracks from Spotify playlist using their API
 function getSpotifyTracksRetry(playlistId) {
-	console.log("1")
 	return getSpotifyTracks(playlistId)
 	.then(data => {
-		console.log(data)
+		// Get new access token if expired and try again
 		if (data.error && data.error.status == 401) {
-			console.log("5")
 			return getNewSpotifyAccessToken()
 			.then(status => {
-				console.log("6")
 				return getSpotifyTracks(playlistId)
 			})
 		}
@@ -139,17 +154,19 @@ function getSpotifyTracksRetry(playlistId) {
 	})
 }
 
+
+
+// Adding a song to the queue
 function addToQueue(item) {
 	client.queue.push(item)
 }
 
+// Downloading song audio from YouTube
 function getYoutubeResource(url) {
 	const stream = ytdl(url, {
 		quality: 'highestaudio',
       	highWaterMark: 1<<25,
 	})
-
-	console.log(stream)
 
 	const resource = createAudioResource(stream, {
 		inputType: StreamType.Arbitrary,
@@ -191,9 +208,7 @@ function playSong(resource, message) {
 		guildId: message.member.voice.channel.guild.id,
 		adapterCreator: message.member.voice.channel.guild.voiceAdapterCreator,
 	});
-	console.log("joined voice channel")
-	console.log("is song currently played: " + player.state.status != 'playing')
-	console.log(resource)
+	
 	// Play song
 	try{
 		player.play(resource);
@@ -223,66 +238,22 @@ function handleRequest(query, message) {
 
 		 	getSpotifyTracksRetry(playlistId)
 			.then(data => {
-				console.log(data)
+				//console.log(data)
 
 				// Play the first song in the playlist
 				searchYoutube(data.items[0].track.name + ' ' + data.items[0].track.artists[0].name, message)
 
 				// Add the rest of the playlist to the queue
 				for (let i = 1; i < data.items.length; i++) {
-					console.log("Adding to queue from playlist: " + data.items[i].track.name + ' ' + data.items[i].track.artists[0].name)
+					//console.log("Adding to queue from playlist: " + data.items[i].track.name + ' ' + data.items[i].track.artists[0].name)
 					addToQueue(data.items[i].track.name + ' ' + data.items[i].track.artists[0].name)
 				}
-				console.log("current queue: [" + client.queue + "]") 
+				//console.log("current queue: [" + client.queue + "]") 
 			})
-
-			// Make a request to the Spotify API
-			/*fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-				headers: {
-				'Authorization': `Bearer ${process.env.SPOTIFY_ACCESS_TOKEN}`
-				}
-			})
-			.then(response => {
-				if (response.status === 401) {
-					return getNewSpotifyAccessToken()
-					.then(() => {
-						
-					})
-					for (let i = 0; i < 3; i++) {
-
-					}
-
-
-				  // Access token has expired
-				  console.log('Access token expired. Refreshing...');
-				  return refreshAccessToken()
-				  .then(newToken => fetchPlaylistTracks(playlistId)) 
-				} else {
-				return response.json();
-			  }})
-			.then(data => {
-				console.log(data)
-
-				// Play the first song in the playlist
-				searchYoutube(data.items[0].track.name + ' ' + data.items[0].track.artists[0].name, message)
-
-				// Add the rest of the playlist to the queue
-				for (let i = 1; i < data.items.length; i++) {
-					console.log("Adding to queue from playlist: " + data.items[i].track.name + ' ' + data.items[i].track.artists[0].name)
-					addToQueue(data.items[i].track.name + ' ' + data.items[i].track.artists[0].name)
-				}
-				console.log("current queue: [" + client.queue + "]") 
-
-			})
-			.catch(error => {
-				console.error(error);
-			});*/
-
 
 		} else {
 			// Have to search for song
 			searchYoutube(query, message)
-
 		}
 
 }
@@ -296,18 +267,16 @@ client.on(Events.MessageCreate, (message) => {
 	}
 
 	if (message.content.startsWith('!shuffle')) {
-		// Shuffling queue
+		// Shuffling queue and preview new queue
 
 		if(client.queue.length == 0) {
 			// Queue empty, tell user nothing shuffled
 			return message.channel.send("Can't shuffle, the queue is empty!")
 		}
 
-		console.log("before shuffle: " + client.queue)
 		shuffleQueue(client.queue)
-		console.log("after shuffle: " + client.queue)
-		return message.channel.send("Queue shuffled!");
-
+		message.channel.send("Queue shuffled!");
+		return message.channel.send({ embeds: [queueEmbed()] });
 		
 	}
 
@@ -320,20 +289,8 @@ client.on(Events.MessageCreate, (message) => {
 		const query = message.content.slice(3);
 		if(query == '') { 
 			// Preview queue
-			let desc = ''
-			client.queue.forEach((song, index) => {
-				if(index > 24) {
-					return
-				}
-				desc += `${index + 1}. ${song}\n`
-			});
-			const queueEmbed = new EmbedBuilder()
-			.setColor(0x0099FF)
-			.setTitle('Queue')
-			.setDescription(desc)
-
-
-			message.channel.send({ embeds: [queueEmbed] });
+			embed = queueEmbed()
+			message.channel.send({ embeds: [embed] });
 
 		}else { 
 			// Add to queue
@@ -359,10 +316,10 @@ client.on(Events.MessageCreate, (message) => {
 
 	  	try {
 
-			/*client.player.on('error', error => {
+			client.player.on('error', error => {
 				console.error(`Error: ${error}`);
-				//client.player.play(getNextResource());
-			});*/
+				client.player.play(getNextResource());
+			});
 
 			client.player.on(AudioPlayerStatus.Idle, () => {
 				// Playing next song in queue if queue not empty
@@ -371,9 +328,6 @@ client.on(Events.MessageCreate, (message) => {
 					console.log('next is ' + next)
 					handleRequest(next, message)
 				}
-				//connection.subscribe(player);
-				//message.channel.send(`Now playing next song`);
-
 		});
 
 	  } catch (error) {
@@ -384,7 +338,6 @@ client.on(Events.MessageCreate, (message) => {
   });
 
 client.on(Events.InteractionCreate, async interaction => {
-	console.log("here2")
     if (!interaction.isChatInputCommand()) return;
 	const command = client.commands.get(interaction.commandName);
 
