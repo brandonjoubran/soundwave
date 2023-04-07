@@ -260,6 +260,16 @@ function handleRequest(query, message) {
 
 client.on(Events.MessageCreate, (message) => {
 
+	console.log(message)
+	if (!message || !message.content || message.content == '') {
+		console.log('message empty')
+		return
+	}
+
+	if(!message.content.startsWith('!')) {
+		return
+	}
+
 	if (message.content.startsWith('!skip')) {
 		// Stopping player makes it idle which triggers next song
 		console.log("Trying to stop...")
@@ -281,8 +291,15 @@ client.on(Events.MessageCreate, (message) => {
 	}
 
 	if (message.content.startsWith('!pause')) {
-		console.log("Trying to stop...")
+		console.log("Trying to pause...")
 		client.player.pause()
+		return message.channel.send("Song paused")
+	}
+
+	if (message.content.startsWith('!unpause')) {
+		console.log("Trying to unpause...")
+		client.player.unpause()
+		return message.channel.send("Song unpaused")
 	}
 
 	if (message.content.startsWith('!q')) {
@@ -305,6 +322,11 @@ client.on(Events.MessageCreate, (message) => {
 		const query = message.content.slice(6);
 		console.log("sliced query: " + query)
 
+		if(query == '' || query == null) {
+			console.log('query was empty')
+			return
+		}
+
 		// Getting voice channel
 	  	const voiceChannel = message.member.voice.channel;
 
@@ -321,8 +343,14 @@ client.on(Events.MessageCreate, (message) => {
 				client.player.play(getNextResource());
 			});
 
+			client.player.on(AudioPlayerStatus.Paused, () => {
+				console.log('paused')
+		});
+
 			client.player.on(AudioPlayerStatus.Idle, () => {
 				// Playing next song in queue if queue not empty
+				console.log('idle')
+				console.log(AudioPlayerStatus)
 				if (client.queue.length > 0) { 
 					let next = client.queue.shift()
 					console.log('next is ' + next)
@@ -334,6 +362,10 @@ client.on(Events.MessageCreate, (message) => {
 		console.error(error);
 	  }
 		
+	}
+
+	else {
+		message.channel.send("Not a command!")
 	}
   });
 
