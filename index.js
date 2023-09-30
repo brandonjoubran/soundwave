@@ -73,12 +73,15 @@ client.once(Events.ClientReady, c => {
 const queueEmbed = () => {
 	// Preview queue
 	let desc = ''
+	// Added songs to the queue message
 	client.queue.forEach((song, index) => {
-		if(index > 24) {
+		if(index > 24) { // Limiting to showing max 24 in queue for now
 			return
 		}
 		desc += `${index + 1}. ${song}\n`
 	});
+	// Desc being empty results in an error
+	if(desc == '') desc = "Queue is empty"
 	const queueEmbed = new EmbedBuilder()
 	.setColor(0x0099FF)
 	.setTitle('Queue')
