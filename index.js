@@ -40,22 +40,22 @@ for (const file of commandFiles) {
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 
-(async () => {
-	try {
-		console.log(`Started refreshing ${commands.length} application (/) commands.`);
+// (async () => {
+// 	try {
+// 		console.log(`Started refreshing ${commands.length} application (/) commands.`);
 
-		// The put method is used to fully refresh all commands in the guild with the current set
-		const data = await rest.put(
-			Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
-			{ body: commands },
-		);
+// 		// The put method is used to fully refresh all commands in the guild with the current set
+// 		const data = await rest.put(
+// 			Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+// 			{ body: commands },
+// 		);
 
-		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
-	} catch (error) {
-		// And of course, make sure you catch and log any errors!
-		console.error(error);
-	}
-})();
+// 		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+// 	} catch (error) {
+// 		// And of course, make sure you catch and log any errors!
+// 		console.error(error);
+// 	}
+// })();
 
 // Creating the player
 client.player = createAudioPlayer();
@@ -235,7 +235,7 @@ function handleRequest(query, message) {
 
 			// Parsing link to get playlist id
 			let playlistId = query.split('/').pop().split('?')[0];
-
+			console.log(playlistId)
 		 	getSpotifyTracksRetry(playlistId)
 			.then(data => {
 				//console.log(data)
@@ -260,6 +260,7 @@ function handleRequest(query, message) {
 
 client.on(Events.MessageCreate, (message) => {
 
+	
 	if (!message || !message.content || message.content == '') {
 		return
 	}
@@ -267,7 +268,7 @@ client.on(Events.MessageCreate, (message) => {
 	if(!message.content.startsWith('!')) {
 		return
 	}
-
+	console.log(message)
 	if (message.content.startsWith('!help')) {
 		// List of commands
 		// Preview queue
@@ -291,13 +292,13 @@ client.on(Events.MessageCreate, (message) => {
 		return message.channel.send({ embeds: [helpEmbed] });
 	}
 
-	if (message.content.startsWith('!skip')) {
+	else if (message.content.startsWith('!skip')) {
 		// Stopping player makes it idle which triggers next song
 		console.log("Trying to stop...")
 		client.player.stop()
 	}
 
-	if (message.content.startsWith('!shuffle')) {
+	else if (message.content.startsWith('!shuffle')) {
 		// Shuffling queue and preview new queue
 
 		if(client.queue.length == 0) {
@@ -311,19 +312,19 @@ client.on(Events.MessageCreate, (message) => {
 		
 	}
 
-	if (message.content.startsWith('!pause')) {
+	else if (message.content.startsWith('!pause')) {
 		console.log("Trying to pause...")
 		client.player.pause()
 		return message.channel.send("Song paused")
 	}
 
-	if (message.content.startsWith('!unpause')) {
+	else if (message.content.startsWith('!unpause')) {
 		console.log("Trying to unpause...")
 		client.player.unpause()
 		return message.channel.send("Song unpaused")
 	}
 
-	if (message.content.startsWith('!q')) {
+	else if (message.content.startsWith('!q')) {
 		const query = message.content.slice(3);
 		if(query == '') { 
 			// Preview queue
@@ -337,10 +338,10 @@ client.on(Events.MessageCreate, (message) => {
 		}
 	}
 
-	if (message.content.startsWith('!p')) {
+	else if (message.content.startsWith('!p')) {
 
 		// Slicing song from command
-		const query = message.content.slice(6);
+		const query = message.content.slice(3);
 		console.log("sliced query: " + query)
 
 		if(query == '' || query == null) {
@@ -384,8 +385,9 @@ client.on(Events.MessageCreate, (message) => {
 	  }
 		
 	}
-
 	else {
+		console.log("not a message")
+		console.log(message.content)
 		message.channel.send("Not a command!")
 	}
   });
