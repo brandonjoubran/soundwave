@@ -15,6 +15,7 @@ const { Player } = require('discord-player')
 const { Routes } = require('discord-api-types/v9')
 const { REST } = require('@discordjs/rest');
 const { connect } = require('node:http2');
+const { channel } = require('node:diagnostics_channel');
 
 // Create a new client instance
 const client = new Client({ intents: [
@@ -62,6 +63,9 @@ client.player = createAudioPlayer();
 
 // Creating song queue
 client.queue = []
+
+// Saving last play message to be deleted on new play
+let prevMsg = ''
 
 // When the client is ready, run this code (only once)
 // We use 'c' for the event parameter to keep it separate from the already defined 'client'
@@ -170,7 +174,11 @@ function getYoutubeResource(url) {
 
 	const resource = createAudioResource(stream, {
 		inputType: StreamType.Arbitrary,
+		inlineVolume: true,
 	})
+	console.log("resource", resource)
+	console.log("resource.volume", resource.volume)
+	resource.volume.setVolume(0.75);
 	return resource
 }
 
@@ -187,7 +195,22 @@ function searchYoutube(query, message) {
 	  .then(results => {
 		let link = results.results[0].link
 		curSong = results.results[0].title;
-		message.channel.send(`Now playing: ${curSong}`);
+		message.channel.send(`Now playing: ${curSong}`).then((result) => {
+			console.log(result)
+			console.log("prevMsg", prevMsg)
+			console.log("result.id", result.id)
+			if(prevMsg == '') prevMsg = result.id
+			else {
+				console.log("channel", message.channel)
+				console.log("channel.messages", message.channel.messages)
+				message.channel.messages.delete(prevMsg);
+				prevMsg = result.id;
+			}
+			console.log("prevMsg 2", prevMsg)
+		})
+
+		//client.prevMsg = ''
+
 		return getYoutubeResource(link)
 	})
 	.then(resource => {
@@ -334,7 +357,7 @@ client.on(Events.MessageCreate, (message) => {
 		}else { 
 			// Add to queue
 			addToQueue(query)
-			message.channel.send(`Added to queue`);
+			message.reply(`Added to queue`);
 		}
 	}
 
