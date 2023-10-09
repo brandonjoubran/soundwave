@@ -67,6 +67,14 @@ client.queue = []
 // Saving last play message to be deleted on new play
 let prevMsg = ''
 
+function htmlDecode (input) {
+	return input.replace('&#38;', "&")
+				.replace('&#60;', "<")
+				.replace('&#62;', ">")
+				.replace('&#43;;', "+")
+				.replace('&#39;', "'");
+  }
+
 // When the client is ready, run this code (only once)
 // We use 'c' for the event parameter to keep it separate from the already defined 'client'
 client.once(Events.ClientReady, c => {
@@ -198,7 +206,8 @@ function searchYoutube(query, message) {
 	  .then(results => {
 		let link = results.results[0].link
 		curSong = results.results[0].title;
-		message.channel.send(`Now playing: ${curSong}`).then((result) => {
+		console.log("CUR SONG", curSong)
+		message.channel.send(`Now playing: ${htmlDecode(curSong)}`).then((result) => {
 			console.log(result)
 			console.log("prevMsg", prevMsg)
 			console.log("result.id", result.id)
