@@ -67,6 +67,7 @@ client.queue = []
 // Saving last play message to be deleted on new play
 let prevMsg = ''
 
+
 function htmlDecode (input) {
 	return input.replace('&#38;', "&")
 				.replace('&#60;', "<")
@@ -75,11 +76,43 @@ function htmlDecode (input) {
 				.replace('&#39;', "'");
   }
 
+client.channelId = ''
+client.guildId = ''
+client.adapterCreator = ''
+let msgChannel;
+
+
 // When the client is ready, run this code (only once)
 // We use 'c' for the event parameter to keep it separate from the already defined 'client'
 client.once(Events.ClientReady, c => {
 	console.log(`Ready! Logged in as ${c.user.tag}`);
 });
+
+try {
+
+	client.player.on('error', error => {
+		console.error(`Error: ${error}`);
+		client.player.play(getNextResource());
+	});
+
+	client.player.on(AudioPlayerStatus.Paused, () => {
+		console.log('paused')
+});
+
+	client.player.on(AudioPlayerStatus.Idle, () => {
+		// Playing next song in queue if queue not empty
+		console.log('idle')
+		console.log(AudioPlayerStatus)
+		if (client.queue.length > 0) { 
+			let next = client.queue.shift()
+			console.log('next is ' + next)
+			handleRequest(next)
+		}
+});
+
+} catch (error) {
+console.error(error);
+}
 
 // Make queue embeded message
 const queueEmbed = () => {
@@ -194,7 +227,7 @@ function getYoutubeResource(url) {
 }
 
 // Function to get YouTube link for a given request
-function searchYoutube(query, message) {
+function searchYoutube(query) {
 
 	var opts = {
 		maxResults: 10,
@@ -206,16 +239,16 @@ function searchYoutube(query, message) {
 	  .then(results => {
 		let link = results.results[0].link
 		curSong = results.results[0].title;
-		console.log("CUR SONG", curSong)
+
 		message.channel.send(`Now playing: ${htmlDecode(curSong)}`).then((result) => {
 			console.log(result)
 			console.log("prevMsg", prevMsg)
 			console.log("result.id", result.id)
 			if(prevMsg == '') prevMsg = result.id
 			else {
-				console.log("channel", message.channel)
-				console.log("channel.messages", message.channel.messages)
-				message.channel.messages.delete(prevMsg);
+				console.log("channel", msgChannel)
+				console.log("channel.messages", msgChannel.messages)
+				msgChannel.messages.delete(prevMsg);
 				prevMsg = result.id;
 			}
 			console.log("prevMsg 2", prevMsg)
@@ -226,22 +259,22 @@ function searchYoutube(query, message) {
 		return getYoutubeResource(link)
 	})
 	.then(resource => {
-		playSong(resource, message)
+		playSong(resource)
 	})	
 	.catch( err => console.log(err));
 
 }
 
 // Function to play song given the resource needed
-function playSong(resource, message) {
+function playSong(resource) {
 
 	const player = client.player
 
 	// Bot join voice channel
 	const connection = joinVoiceChannel({
-		channelId: message.member.voice.channel.id,
-		guildId: message.member.voice.channel.guild.id,
-		adapterCreator: message.member.voice.channel.guild.voiceAdapterCreator,
+		channelId: client.channelId ,
+		guildId: client.guildId,
+		adapterCreator: client.adapterCreator,
 	});
 	
 	// Play song
@@ -254,11 +287,11 @@ function playSong(resource, message) {
 	  }
 }
 
-function handleRequest(query, message) {
+function handleRequest(query) {
 	if (query.startsWith('https://www.youtube.com/')) {
 			// Playing a YouTube song
 			resource = getYoutubeResource(query)
-			playSong(resource, message)
+			playSong(resource)
 		
 		} else if (query.startsWith('https://open.spotify.com/track/')) {
 			// https://open.spotify.com/track/2mN6HgN5Cm4slbh35jiDOa?si=1a33bb929eb04840
@@ -276,7 +309,7 @@ function handleRequest(query, message) {
 				//console.log(data)
 
 				// Play the first song in the playlist
-				searchYoutube(data.items[0].track.name + ' ' + data.items[0].track.artists[0].name, message)
+				searchYoutube(data.items[0].track.name + ' ' + data.items[0].track.artists[0].name)
 
 				// Add the rest of the playlist to the queue
 				for (let i = 1; i < data.items.length; i++) {
@@ -284,11 +317,13 @@ function handleRequest(query, message) {
 					addToQueue(data.items[i].track.name + ' ' + data.items[i].track.artists[0].name)
 				}
 				//console.log("current queue: [" + client.queue + "]") 
+				// Shuffle playlist
+				shuffleQueue(client.queue)
 			})
 
 		} else {
 			// Have to search for song
-			searchYoutube(query, message)
+			searchYoutube(query)
 		}
 
 }
@@ -304,6 +339,12 @@ client.on(Events.MessageCreate, (message) => {
 		return
 	}
 	console.log(message)
+	
+	client.channelId = message.member.voice.channel.id
+	client.guildId = message.member.voice.channel.guild.id
+	client.adapterCreator = message.member.voice.channel.guild.voiceAdapterCreator
+	msgChannel = message.channel
+
 	if (message.content.startsWith('!help')) {
 		// List of commands
 		// Preview queue
@@ -391,33 +432,33 @@ client.on(Events.MessageCreate, (message) => {
 	  	if (!voiceChannel) return message.channel.send('You need to be in a voice channel to play music!');
 	  	console.log("verified user is in the voice channel")	
 
-		handleRequest(query, message)
+		handleRequest(query)
 
-	  	try {
+	//   	try {
 
-			client.player.on('error', error => {
-				console.error(`Error: ${error}`);
-				client.player.play(getNextResource());
-			});
+	// 		client.player.on('error', error => {
+	// 			console.error(`Error: ${error}`);
+	// 			client.player.play(getNextResource());
+	// 		});
 
-			client.player.on(AudioPlayerStatus.Paused, () => {
-				console.log('paused')
-		});
+	// 		client.player.on(AudioPlayerStatus.Paused, () => {
+	// 			console.log('paused')
+	// 	});
 
-			client.player.on(AudioPlayerStatus.Idle, () => {
-				// Playing next song in queue if queue not empty
-				console.log('idle')
-				console.log(AudioPlayerStatus)
-				if (client.queue.length > 0) { 
-					let next = client.queue.shift()
-					console.log('next is ' + next)
-					handleRequest(next, message)
-				}
-		});
+	// 		client.player.on(AudioPlayerStatus.Idle, () => {
+	// 			// Playing next song in queue if queue not empty
+	// 			console.log('idle')
+	// 			console.log(AudioPlayerStatus)
+	// 			if (client.queue.length > 0) { 
+	// 				let next = client.queue.shift()
+	// 				console.log('next is ' + next)
+	// 				handleRequest(next, message)
+	// 			}
+	// 	});
 
-	  } catch (error) {
-		console.error(error);
-	  }
+	//   } catch (error) {
+	// 	console.error(error);
+	//   }
 		
 	}
 	else {
