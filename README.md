@@ -14,6 +14,7 @@ Discord Music Player
 - [x] Shuffle queue
 - [x] Prepend to queue
 - [ ] Jump to spot in queue
+- [ ] Remove specific item in queue by queue number
 - [ ] Set default join volume
 - [ ] Set default playlist names so don't need link
 - [x] Help command to list bot commands
