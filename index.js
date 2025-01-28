@@ -256,7 +256,7 @@ async function getYoutubeResource(url) {
 	// console.log("stream " + audioItem)
 	// console.log("pls2 " + audioItem)
 
-	const resource = createAudioResource("./video.mp4")
+	const resource = createAudioResource("./song.mp4")
 	console.log("pls3")
 	console.log("resource", resource)
 	// console.log("resource.volume", resource.volume)
