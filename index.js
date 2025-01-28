@@ -185,6 +185,11 @@ function addToBegginingOfQueue(item) {
 	client.queue.unshift(item)
 }
 
+// Remove the first 'amount' number of items from queue
+function jumpQueue(amount) {
+	client.queue = client.queue.slice(amount)
+}
+
 // Downloading song audio from YouTube
 async function getYoutubeResource(url) {
 	filename = "song.mp4"
@@ -334,6 +339,7 @@ client.on(Events.MessageCreate, (message) => {
 		desc += '!skip\n'
 		desc += '!shuffle\n'
 		desc += '!qn <YouTube link / Spotify song link / Spotify playlist link / name of song>\n'
+		desc += '!j <number>\n'
 		const helpEmbed = new EmbedBuilder()
 		.setColor(0x0099FF)
 		.setTitle('List of bot commands')
@@ -344,6 +350,7 @@ client.on(Events.MessageCreate, (message) => {
 			{ name: 'Unpause audio', value: '**Command: **`!unpause`' },
 			{ name: 'Shuffle queue', value: '**Command: **`!shuffle`' },
 			{ name: 'Queue next', value: '**Command: **`!qn <YouTube link / Spotify song link / Spotify playlist link / name of song>.`\n **Example**: !qn Pokemon theme song\n' },
+			{ name: 'Jump queue', value: '**Command: **`!j <number>.`\n **Example**: !j 3\n' },
 		)
 		return message.channel.send({ embeds: [helpEmbed] });
 	}
@@ -391,7 +398,7 @@ client.on(Events.MessageCreate, (message) => {
 		}else { 
 			// Add to beginning of queue
 			addToBegginingOfQueue(query)
-			message.reply(`Added to queue!`);
+			message.reply(`Added next to the queue!`);
 		}
 	}
 
@@ -408,6 +415,27 @@ client.on(Events.MessageCreate, (message) => {
 			// Add to queue
 			addToQueue(query)
 			message.reply(`Added to the queue!`);
+		}
+	}
+
+	else if (message.content.startsWith('!j')) {
+		const query = message.content.slice(3);
+		console.log(`Parsed query: ${query}`)
+
+		if(query == '') { 
+			// Preview queue
+			embed = queueEmbed()
+			message.channel.send({ embeds: [embed] });
+
+		} else { 
+			// Jump queue
+			try {
+				amount = Number(query)
+				jumpQueue(amount - 1)
+			} catch (error) {
+				console.error(`Failed jumping: ${error}`);
+			}
+			message.reply(`Jumping to song ${amount} in the queue!`);
 		}
 	}
 
@@ -453,7 +481,7 @@ client.on(Events.InteractionCreate, async interaction => {
 		console.error(`No command matching ${interaction.commandName} was found.`);
 		return;
 	}
-	console.log(interaction)
+	console.log(`Interaction: ${interaction}`)
 	try {
 		await command.execute({client, interaction});
 	} catch (error) {
